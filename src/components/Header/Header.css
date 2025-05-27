@@ -129,14 +129,32 @@ header .nav ul li a:hover {
 }
 
 /* Mobile Menu Toggle */
-.menu-toggle {
+.hamburger-menu {
     display: none;
+    position: absolute;
+    right:20px;
+    top: 20px;  
+    width: 30px;
+    height: 30px;  
+    padding:2px;
+    z-index:30;
     background: none;
     border: none;
     color: white;
     font-size: 1.5rem;
     cursor: pointer;
 }
+
+.bar
+{
+    width: 20px;
+    height: 4px;
+    background-color: white;
+    margin: 5px 0;
+    transition: background-color 0.3s ease;
+}
+
+
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -145,7 +163,7 @@ header .nav ul li a:hover {
         align-items: flex-start;
     }
 
-    .menu-toggle {
+    .hamburger-menu {
         display: block;
     }
 
