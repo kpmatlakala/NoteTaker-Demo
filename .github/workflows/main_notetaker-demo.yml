@@ -9,10 +9,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2️⃣ Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -20,6 +25,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
+      # 3️⃣ Install dependencies and build backend
       - name: Install dependencies and build
         working-directory: ./backend
         run: |
@@ -27,30 +33,37 @@ jobs:
           npm run build --if-present
           echo "✅ Build completed successfully."
 
+      # 4️⃣ Upload backend folder as artifact (keep original structure)
       - name: Upload backend artifact
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: backend/
+          path: backend/   # keep backend folder, not flattened
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
+      # 1️⃣ Download artifact
       - name: Download backend artifact
         uses: actions/download-artifact@v4
         with:
           name: node-app
 
+      # 2️⃣ Login to Azure using SP JSON secret
       - name: Login to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      # 3️⃣ Deploy to Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'notetaker-demo'
           slot-name: 'Production'
-          package: ./node-app/backend  # folder with package.json
-
+          package: ./node-app/backend   # folder containing package.json
