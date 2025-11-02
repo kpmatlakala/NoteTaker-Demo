@@ -1,15 +1,13 @@
 const sql = require('mssql');
+require('dotenv').config();
 
 // Azure SQL connection config
 const config = {
-    user: 'notetakeradmin',          // e.g., adminuser
-    password: 'AdminP@ss',      // the password you set
-    server: 'notetakersqlsrv.database.windows.net', // e.g., notetakersqlsrv.database.windows.net
-    database: 'NoteTakerDB',           // your database name
-    options: {
-        encrypt: true,                 // mandatory for Azure
-        trustServerCertificate: false  // set to true only for local dev
-    }
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  server: process.env.DB_SERVER,
+  database: process.env.DB_NAME,
+  options: { encrypt: true, trustServerCertificate: false }
 };
 
 async function connectToDb() {
