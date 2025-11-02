@@ -1,7 +1,0 @@
-Tasket-Links, stands out from a standard task-management app in several ways:
-
-- Link-Centric Approach: While traditional task-management apps focus on creating, assigning, and tracking tasks or to-dos, Tasket-Links appears to center around organizing, sharing, and managing links or resources, possibly with collaborative or social features.
-- Modern, Social-Inspired UI: The design and user experience are inspired by platforms like Pinterest, emphasizing visual appeal, modals for authentication, and a seamless onboarding flow, rather than the utilitarian interfaces common in task apps.
-- Authentication and Onboarding: The app prioritizes a smooth authentication experience with custom modals for login and signup, aiming for a welcoming entry point rather than just a functional login screen.
-- Potential for Collaboration or Sharing: If your app allows users to share, comment on, or organize links collaboratively, this adds a social or community-driven aspect not typically found in basic task managers.
-In summary, Tasket-Links is more about curating and interacting with links or resources in a visually engaging, possibly collaborative environment, rather than just managing personal or team tasks and to-dos.
