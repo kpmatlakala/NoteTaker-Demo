@@ -1,5 +1,3 @@
-# Docs: https://github.com/Azure/webapps-deploy
-
 name: Build and Deploy Node.js App to Azure Web App - notetaker-demo
 
 on:
@@ -11,9 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,10 +36,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    permissions:
-      id-token: write
-      contents: read
-
     steps:
       - name: Download backend artifact
         uses: actions/download-artifact@v4
@@ -54,13 +45,11 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_39B5E0343E06456A8BC3D194CA634B05 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F157A208531D4CF8A49AA17E8859535D }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_83C9BFCC98C5494FA72E509E291C29D5 }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'notetaker-demo'
           slot-name: 'Production'
-          package: .
+          package: ./node-app  # folder with package.json
