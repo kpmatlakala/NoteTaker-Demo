@@ -141,16 +141,15 @@ DELETE /api/boards/:boardId/cards/:cardId
 
 ```
 kanban-notetaker/
-├── frontend/           # Client-side code
 │   ├── index.html     # Main HTML file
 │   ├── styles.css     # Styles and themes
 │   └── app.js         # Frontend logic
 ├── backend/           # Server-side code
+│   ├── package.json   # Dependencies
 │   ├── server.js      # Express app setup
 │   ├── routes/        # API route definitions
 │   ├── controllers/   # Business logic
-│   └── models/        # Data models
-├── package.json       # Dependencies
+│   └── models/        # Data models    
 └── README.md         # Documentation
 ```
 
