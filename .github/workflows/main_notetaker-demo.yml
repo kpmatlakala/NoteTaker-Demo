@@ -52,4 +52,5 @@ jobs:
         with:
           app-name: 'notetaker-demo'
           slot-name: 'Production'
-          package: ./node-app  # folder with package.json
+          package: ./node-app/backend  # folder with package.json
+
