@@ -29,7 +29,7 @@ app.use('/api/boards', boardRoutes);
 app.use('/api/cards', cardRoutes);
 
 // Serve frontend
-const FRONTEND_DIR = path.join(__dirname, "../frontend"); // adjust if needed
+const FRONTEND_DIR = path.join(__dirname, "../"); // adjust if needed
 app.use(express.static(FRONTEND_DIR));
 
 app.get("/", (req, res) => {
