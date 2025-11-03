@@ -17,16 +17,21 @@ concurrency:
 
 jobs:
   deploy:
+    environment:
+      name: github-pages   # ✅ REQUIRED for Pages deployments
+      url: ${{ steps.deployment.outputs.page_url }}
+
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Upload pages artifact
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./  # 👈 Root of repo — includes index.html and assets
+          path: ./  # 👈 Path to your static files (index.html, js/, assets/, etc.)
 
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
