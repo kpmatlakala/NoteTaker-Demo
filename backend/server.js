@@ -5,8 +5,8 @@ require("dotenv").config();
 
 const { connectToDb, getPool } = require("./db");
 
-const boardRoutes = require("./routes/boards");
-const cardRoutes = require("./routes/cards");
+const boardRoutes = require("./routes/boardRoutes");
+const cardRoutes = require("./routes/cardRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,19 +16,24 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from frontend directory
-app.use(express.static(path.join(__dirname, "../")));
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
 
-// Connect to Azure SQL
-connectToDb();
+// API routes
+// Boards
+app.use('/api/boards', boardRoutes);
+// Cards
+app.use('/api/cards', cardRoutes);
 
-// API routes first
-app.use("/api/boards", boardRoutes);
-app.use("/api/boards/:boardId/cards", cardRoutes);
+// Serve frontend
+const FRONTEND_DIR = path.join(__dirname, "../frontend"); // adjust if needed
+app.use(express.static(FRONTEND_DIR));
 
-// Root route
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../index.html"), (err) => {
+  res.sendFile(path.join(FRONTEND_DIR, "index.html"), (err) => {
     if (err) {
       console.error("❌ Failed to send index.html:", err);
       res.status(500).send("Frontend file not found.");
@@ -36,28 +41,22 @@ app.get("/", (req, res) => {
   });
 });
 
-app.get('/api/health', async (req, res) => {
-  let dbStatus = 'not connected';
+// Health endpoint
+app.get("/api/health", async (req, res) => {
+  let dbStatus = "not connected";
   try {
     const pool = getPool();
-    // Test a simple query to ensure DB is reachable
-    await pool.request().query('SELECT 1 AS number');
-    dbStatus = 'connected';
+    await pool.request().query("SELECT 1 AS number");
+    dbStatus = "connected";
   } catch (err) {
     dbStatus = `error: ${err.message}`;
   }
 
   res.json({
-    status: 'ok',
+    status: "ok",
     timestamp: new Date().toISOString(),
-    db: dbStatus
+    db: dbStatus,
   });
-});
-
-
-app.use((req, res, next) => {
-  console.log(`Incoming request: ${req.method} ${req.url}`);
-  next();
 });
 
 // 404 handler
@@ -72,16 +71,22 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-connectToDb()
-  .then(() => {
+async function startServer() {
+  try {
+    await connectToDb();
+    console.log("✅ Connected to Azure SQL Database");
+
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log(`📋 Frontend: http://localhost:${PORT}`);
       console.log(`🔌 API: http://localhost:${PORT}/api`);
     });
-  })
-  .catch((err) => {
-    console.error("Failed to start server, DB not connected:", err);
-  });
+  } catch (err) {
+    console.error("❌ Failed to start server:", err);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 module.exports = app;

@@ -6,15 +6,15 @@ const boardController = require('../controllers/boardController');
 router.get('/', boardController.getAllBoards);
 
 // GET a single board by ID
-router.get('/:id', boardController.getBoardById);
+router.get('/:boardId', boardController.getBoardById);
 
 // POST create a new board
 router.post('/', boardController.createBoard);
 
-// PUT update a board
-router.put('/:id', boardController.updateBoard);
+// PUT update a board (optional, can implement later)
+// router.put('/:boardId', boardController.updateBoard);
 
 // DELETE a board
-router.delete('/:id', boardController.deleteBoard);
+router.delete('/:boardId', boardController.deleteBoard);
 
 module.exports = router;

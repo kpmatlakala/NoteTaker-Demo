@@ -1,38 +1,36 @@
+const cardModel = require('../models/cardModel');
 const boardModel = require('../models/boardModel');
 
-// GET all cards in a board
-exports.getAllCards = (req, res) => {
+// GET all cards
+exports.getAllCards = async (req, res) => {
+  try {
+    const cards = await cardModel.getAllCards();
+    res.json({ success: true, data: cards });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// GET all cards for a board
+exports.getCardsByBoard = async (req, res) => {
   try {
     const { boardId } = req.params;
-    const board = boardModel.getBoardById(boardId);
-    
-    if (!board) {
-      return res.status(404).json({ success: false, error: 'Board not found' });
-    }
+    const board = await boardModel.getBoardById(boardId);
+    if (!board) return res.status(404).json({ success: false, error: 'Board not found' });
 
-    // Collect all cards from all columns
-    const allCards = [];
-    board.columns.forEach(column => {
-      column.cards.forEach(card => {
-        allCards.push({ ...card, columnId: column.id });
-      });
-    });
-
-    res.json({ success: true, data: allCards });
+    const cards = await cardModel.getCardsByBoard(boardId);
+    res.json({ success: true, data: cards });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
 // GET specific card
-exports.getCardById = (req, res) => {
+exports.getCardById = async (req, res) => {
   try {
-    const { boardId, cardId } = req.params;
-    const card = boardModel.getCardById(boardId, cardId);
-    
-    if (!card) {
-      return res.status(404).json({ success: false, error: 'Card not found' });
-    }
+    const { cardId } = req.params;
+    const card = await cardModel.getCardById(cardId);
+    if (!card) return res.status(404).json({ success: false, error: 'Card not found' });
 
     res.json({ success: true, data: card });
   } catch (error) {
@@ -40,47 +38,40 @@ exports.getCardById = (req, res) => {
   }
 };
 
-// CREATE new card
-exports.createCard = (req, res) => {
+// CREATE new card in a specific board
+exports.createCard = async (req, res) => {
   try {
     const { boardId } = req.params;
-    const { title, description, priority, columnId } = req.body;
-    
-    if (!title || !columnId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Title and columnId are required' 
-      });
-    }
+    const { title, description, priority } = req.body;
 
-    const newCard = boardModel.createCard(boardId, {
-      title,
-      description: description || '',
-      priority: priority || 'medium',
-      columnId
-    });
+    // Validate required fields
+    if (!title) 
+      return res.status(400).json({ success: false, error: 'Title is required' });
 
-    if (!newCard) {
-      return res.status(404).json({ success: false, error: 'Board or column not found' });
-    }
+    // Check if board exists
+    const board = await boardModel.getBoardById(boardId);
+    if (!board) 
+      return res.status(404).json({ success: false, error: 'Board not found' });
 
+    // Create the new card
+    const newCard = await cardModel.createCard(boardId, { title, description, priority });
+
+    // Respond with the created card
     res.status(201).json({ success: true, data: newCard });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// UPDATE card
-exports.updateCard = (req, res) => {
-  try {
-    const { boardId, cardId } = req.params;
-    const updates = req.body;
 
-    const updatedCard = boardModel.updateCard(boardId, cardId, updates);
-    
-    if (!updatedCard) {
-      return res.status(404).json({ success: false, error: 'Card not found' });
-    }
+// UPDATE card
+exports.updateCard = async (req, res) => {
+  try {
+    const { cardId } = req.params;
+    const { content, boardId } = req.body; // optional boardId if moving card
+
+    const updatedCard = await cardModel.updateCard(cardId, { content, boardId });
+    if (!updatedCard) return res.status(404).json({ success: false, error: 'Card not found' });
 
     res.json({ success: true, data: updatedCard });
   } catch (error) {
@@ -89,14 +80,11 @@ exports.updateCard = (req, res) => {
 };
 
 // DELETE card
-exports.deleteCard = (req, res) => {
+exports.deleteCard = async (req, res) => {
   try {
-    const { boardId, cardId } = req.params;
-    const deleted = boardModel.deleteCard(boardId, cardId);
-    
-    if (!deleted) {
-      return res.status(404).json({ success: false, error: 'Card not found' });
-    }
+    const { cardId } = req.params;
+    const deleted = await cardModel.deleteCard(cardId);
+    if (!deleted) return res.status(404).json({ success: false, error: 'Card not found' });
 
     res.json({ success: true, message: 'Card deleted successfully' });
   } catch (error) {
