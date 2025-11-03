@@ -32,8 +32,8 @@ jobs:
           npm run build --if-present
           echo "✅ Build completed successfully."
 
-      # 4️⃣ Upload backend contents as artifact
-      - name: Upload backend artifact
+      # 4️⃣  Upload backend + frontend
+      - name: Upload artifact (backend + frontend)
         uses: actions/upload-artifact@v4
         with:
           name: node-app

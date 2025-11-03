@@ -1,4 +1,4 @@
-name: Build and Deploy Node.js App to Azure Web App - notetaker-demo
+name: Deploy Static Frontend to GitHub Pages
 
 on:
   push:
@@ -16,16 +16,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      #
       - name: Checkout
         uses: actions/checkout@v4
 
-      #
       - name: Upload pages artifact
-        uses: actions/setup-node@v3
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: ./
+          path: ./  # 👈 Root of repo — includes index.html and assets
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
