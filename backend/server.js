@@ -4,7 +4,7 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
-const { connectToDb } = require('./db');
+const { connectToDb, pool } = require('./db');
 
 const boardRoutes = require('./routes/boards');
 const cardRoutes = require('./routes/cards');
@@ -20,13 +20,15 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files from frontend directory
 app.use(express.static(path.join(__dirname, '../')));
 
-
 // Connect to Azure SQL
 connectToDb();
 
 app.get('/test-db', async (req, res) => {
     try {
-        const result = await require('./db').sql.query('SELECT 1 AS number');
+        if (!pool) {
+            return res.status(500).json({ error: 'Database not connected yet.' });
+        }
+        const result = await pool.request().query('SELECT 1 AS number');
         res.json(result.recordset);
     } catch (err) {
         res.status(500).json({ error: err.message });
