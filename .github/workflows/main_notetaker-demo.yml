@@ -42,7 +42,7 @@ jobs:
             backend/**
             index.html
             style.css
-            js/**
+            app.js
             assets/**
 
   deploy:
