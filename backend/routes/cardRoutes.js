@@ -12,9 +12,8 @@ router.get('/:cardId', cardController.getCardById);
 router.get('/', cardController.getAllCards);
 
 
-
 // CREATE new card in a specific board
-router.post('/board/:boardId', cardController.createCard);
+router.post('/board/:boardId/column/:columnId/', cardController.createCard);
 
 // UPDATE a card
 router.put('/:cardId', cardController.updateCard);

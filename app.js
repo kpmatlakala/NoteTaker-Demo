@@ -1,14 +1,54 @@
 // Base API URL
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = "http://localhost:3000/api";
 let boards = [];
 let currentBoard = null;
+let columns = [];
 let cards = [];
+let draggedCard = null;
 
 // === Initialization ===
 async function init() {
   await loadBoards();
   renderBoards();
   setupTheme();
+  setupBoardHeader();
+}
+
+// === Setup Add Board Button ===
+function setupBoardHeader() {
+  const addBtn = document.querySelector(".board-header button");
+  if (!addBtn) return;
+
+  addBtn.addEventListener("click", () => {
+    document.getElementById("boardModal").style.display = "block";
+  });
+}
+
+function renderBreadcrumbs() {
+  const bc = document.getElementById("breadcrumbs");
+  bc.innerHTML = "";
+
+  if (!currentBoard) return;
+
+  const boardsLink = document.createElement("span");
+  boardsLink.className = "breadcrumb-link";
+  boardsLink.textContent = "Boards";
+  boardsLink.onclick = async () => {
+    currentBoard = null;
+    await loadBoards();
+    renderBoards();
+    renderBreadcrumbs();
+  };
+
+  const separator = document.createElement("span");
+  separator.textContent = " > ";
+
+  const boardName = document.createElement("span");
+  boardName.textContent = currentBoard.title;
+
+  bc.appendChild(boardsLink);
+  bc.appendChild(separator);
+  bc.appendChild(boardName);
 }
 
 // === Fetch Boards ===
@@ -18,24 +58,23 @@ async function loadBoards() {
     const data = await res.json();
     if (data.success) boards = data.data;
   } catch (err) {
-    console.error('❌ Failed to load boards:', err);
+    console.error("❌ Failed to load boards:", err);
   }
 }
 
 // === Render Boards List ===
 function renderBoards() {
-  const board = document.getElementById('board');
-  board.innerHTML = '';
+  const board = document.getElementById("board");
+  board.innerHTML = "";
 
   if (!boards.length) {
-    board.innerHTML = `<p>No boards found. Click below to create one.</p>
-                       <button onclick="createBoard()">➕ Create Board</button>`;
+    board.innerHTML = `<p>No boards found. Click below to create one.</p>                       `;
     return;
   }
 
-  boards.forEach(b => {
-    const div = document.createElement('div');
-    div.className = 'board-card';
+  boards.forEach((b) => {
+    const div = document.createElement("div");
+    div.className = "board-card";
     div.innerHTML = `
       <div class="board-info">
         <h2>${escapeHtml(b.Title)}</h2>
@@ -43,7 +82,9 @@ function renderBoards() {
       </div>
       <div class="board-actions">
         <button onclick="openBoard(${b.BoardId}, '${b.Title}')">Open</button>
-        <button class="secondary danger" onclick="deleteBoard(${b.BoardId})">Delete</button>
+        <button class="secondary danger" onclick="deleteBoard(${
+          b.BoardId
+        })">Delete</button>
       </div>
     `;
     board.appendChild(div);
@@ -51,96 +92,113 @@ function renderBoards() {
 }
 
 // === Create New Board ===
-async function createBoard() {
-  const name = prompt('Enter board name:');
-  if (!name) return;
+// Open board modal
+document.getElementById("openBoardFormBtn").addEventListener("click", () => {
+  document.getElementById("boardModal").style.display = "block";
+});
 
-  const res = await fetch(`${API_BASE}/boards`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: name })
-  });
-  const data = await res.json();
-  if (data.success) {
-    await loadBoards();
-    renderBoards();
-  } else {
-    alert('❌ Failed to create board');
-  }
+// Close board modal
+function closeBoardModal() {
+  document.getElementById("boardModal").style.display = "none";
+  document.getElementById("boardForm").reset();
 }
+
+// Submit board form
+document.getElementById("boardForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const title = document.getElementById("boardTitleInput").value.trim();
+  const includeColumns = document.getElementById("defaultColumns").checked;
+  if (!title) return alert("Title is required");
+
+  try {
+    const res = await fetch(`${API_BASE}/boards`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, createDefaultColumns: includeColumns }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      await loadBoards();
+      renderBoards();
+      closeBoardModal();
+    } else {
+      alert("❌ Failed to create board: " + (data.error || "Unknown error"));
+    }
+  } catch (err) {
+    console.error("❌ Error creating board:", err);
+    alert("❌ Error creating board, see console");
+  }
+});
 
 // === Delete Board ===
 async function deleteBoard(id) {
-  if (!confirm('Delete this board?')) return;
-  const res = await fetch(`${API_BASE}/boards/${id}`, { method: 'DELETE' });
+  if (!confirm("Delete this board?")) return;
+  const res = await fetch(`${API_BASE}/boards/${id}`, { method: "DELETE" });
   const data = await res.json();
   if (data.success) {
     await loadBoards();
     renderBoards();
   } else {
-    alert('❌ Could not delete board');
+    alert("❌ Could not delete board");
   }
 }
 
-// === Open Board (and load cards) ===
+// === Open Board (columns + cards) ===
 async function openBoard(boardId, title) {
   currentBoard = { id: boardId, title };
-  document.querySelector('.board-title').textContent = title;
-  await loadCards(boardId);
-  renderKanban();
-}
+  document.querySelector(".board-title").textContent = title;
 
-// === Fetch Cards for Board ===
-async function loadCards(boardId) {
-  try {
-    const res = await fetch(`${API_BASE}/cards/board/${boardId}`);
-    const data = await res.json();
-    if (data.success) {
-      cards = data.data;
-    } else {
-      cards = [];
-    }
-  } catch (err) {
-    console.error('❌ Failed to load cards:', err);
-    cards = [];
-  }
+  const [colsRes, cardsRes] = await Promise.all([
+    fetch(`${API_BASE}/columns/board/${boardId}`),
+    fetch(`${API_BASE}/cards/board/${boardId}`),
+  ]);
+
+  const colsData = await colsRes.json();
+  const cardsData = await cardsRes.json();
+  console.log(colsData, cardsData);
+
+  columns = colsData ? colsData : [];
+  cards = cardsData.success ? cardsData.data : [];
+
+  renderKanban();
+  renderBreadcrumbs(); // ✅ Add here
 }
 
 // === Render Kanban Columns ===
 function renderKanban() {
-  const board = document.getElementById('board');
-  board.innerHTML = '';
+  const boardEl = document.getElementById("board");
+  boardEl.innerHTML = "";
 
-  const columns = ['Backlog', 'In Progress', 'Done'];
+  columns.forEach((col) => {
+    const colDiv = document.createElement("div");
+    colDiv.className = "column";
 
-  columns.forEach(col => {
-    const colDiv = document.createElement('div');
-    colDiv.className = 'column';
-
-    const filteredCards = cards.filter(c => (c.Status || 'Backlog') === col);
+    const filteredCards = cards.filter((c) => c.ColumnId === col.ColumnId);
 
     colDiv.innerHTML = `
       <div class="column-header">
-        <div class="column-title">${col}
+        <div class="column-title">${col.Title}
           <span class="column-count">${filteredCards.length}</span>
         </div>
       </div>
-      <div class="cards-container" data-column="${col}"></div>
-      <button class="add-card-btn" onclick="openAddCard('${col}')">+ Add card</button>
+      <div class="cards-container" data-column-id="${col.ColumnId}"></div>
+      <button class="add-card-btn" onclick="openAddCardModal(${col.ColumnId})">+ Add card</button>
     `;
 
-    const container = colDiv.querySelector('.cards-container');
-    filteredCards.forEach(card => container.appendChild(createCardElement(card, col)));
+    const container = colDiv.querySelector(".cards-container");
+    filteredCards.forEach((card) =>
+      container.appendChild(createCardElement(card, col.ColumnId))
+    );
 
-    setupDropZone(container, col);
-    board.appendChild(colDiv);
+    setupDropZone(container, col.ColumnId);
+    boardEl.appendChild(colDiv);
   });
 }
 
 // === Card Element ===
-function createCardElement(card, column) {
-  const div = document.createElement('div');
-  div.className = 'card';
+function createCardElement(card, columnId) {
+  const div = document.createElement("div");
+  div.className = "card";
   div.draggable = true;
   div.dataset.cardId = card.CardId;
 
@@ -148,94 +206,136 @@ function createCardElement(card, column) {
     <div class="card-header">
       <div class="card-title">${escapeHtml(card.Title)}</div>
       <div class="card-actions">
-        <button class="icon-btn" onclick="deleteCard(${card.CardId})">🗑️</button>
+        <button class="icon-btn" onclick="deleteCard(${
+          card.CardId
+        })">🗑️</button>
       </div>
     </div>
-    ${card.Description ? `<div class="card-description">${escapeHtml(card.Description)}</div>` : ''}
+    ${
+      card.Description
+        ? `<div class="card-description">${escapeHtml(card.Description)}</div>`
+        : ""
+    }
     <div class="card-footer">
-      <span class="priority-badge priority-${card.Priority?.toLowerCase()}">${card.Priority || 'medium'}</span>
+      <span class="priority-badge priority-${
+        card.Priority?.toLowerCase() || "medium"
+      }">${card.Priority || "Medium"}</span>
     </div>
   `;
 
-  div.addEventListener('dragstart', () => {
-    draggedCard = { id: card.CardId, from: column };
-    div.classList.add('dragging');
+  div.addEventListener("dragstart", () => {
+    draggedCard = { id: card.CardId, from: columnId };
+    div.classList.add("dragging");
   });
-  div.addEventListener('dragend', () => div.classList.remove('dragging'));
+  div.addEventListener("dragend", () => div.classList.remove("dragging"));
 
   return div;
 }
 
-// === Drop Handling ===
-function setupDropZone(container, column) {
-  container.addEventListener('dragover', e => e.preventDefault());
-  container.addEventListener('drop', async e => {
+// === Drag & Drop Columns ===
+function setupDropZone(container, columnId) {
+  container.addEventListener("dragover", (e) => e.preventDefault());
+  container.addEventListener("drop", async (e) => {
     e.preventDefault();
-    if (draggedCard && draggedCard.from !== column) {
-      await updateCardStatus(draggedCard.id, column);
+    if (draggedCard && draggedCard.from !== columnId) {
+      await updateCardColumn(draggedCard.id, columnId);
     }
   });
 }
 
-// === Add / Delete / Move Cards ===
-async function addCard(column) {
-  const title = prompt('Card title:');
-  if (!title) return;
-  const description = prompt('Description (optional):');
-  const priority = prompt('Priority (Low/Medium/High):', 'Medium');
+// === Open Add Card Modal ===
+function openAddCardModal(columnId) {
+  const modal = document.getElementById("cardModal");
+  modal.style.display = "block";
+  modal.dataset.columnId = columnId;
 
-  const res = await fetch(`${API_BASE}/cards/board/${currentBoard.id}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, description, priority, status: column })
-  });
+  // Reset form
+  document.getElementById("cardForm").reset();
+  document.getElementById("modalTitle").textContent = "Add New Card";
+}
 
+// === Close Modal ===
+function closeModal() {
+  document.getElementById("cardModal").style.display = "none";
+  delete document.getElementById("cardModal").dataset.columnId;
+}
+
+// === Submit Card Form ===
+document.getElementById("cardForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const modal = document.getElementById("cardModal");
+  const columnId = parseInt(modal.dataset.columnId);
+  const title = document.getElementById("cardTitleInput").value.trim();
+  const description = document.getElementById("cardDescInput").value.trim();
+  const priority = document.getElementById("cardPriorityInput").value;
+
+  if (!title) return alert("Title is required");
+
+  const res = await fetch(
+    `${API_BASE}/cards/board/${currentBoard.id}/column/${columnId}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, description, priority }),
+    }
+  );
+
+  const data = await res.json();
+  if (data.success) {
+    await openBoard(currentBoard.id, currentBoard.title);
+    renderBreadcrumbs();
+    closeModal();
+  } else {
+    alert("❌ Failed to add card");
+  }
+});
+
+// === Delete Card ===
+async function deleteCard(cardId) {
+  if (!confirm("Delete this card?")) return;
+  const res = await fetch(`${API_BASE}/cards/${cardId}`, { method: "DELETE" });
   const data = await res.json();
   if (data.success) await openBoard(currentBoard.id, currentBoard.title);
 }
 
-async function deleteCard(cardId) {
-  if (!confirm('Delete this card?')) return;
-  await fetch(`${API_BASE}/cards/${cardId}`, { method: 'DELETE' });
-  await openBoard(currentBoard.id, currentBoard.title);
-}
-
-async function updateCardStatus(cardId, newStatus) {
+// === Update Card Column ===
+async function updateCardColumn(cardId, columnId) {
   await fetch(`${API_BASE}/cards/${cardId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status: newStatus })
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ columnId }),
   });
   await openBoard(currentBoard.id, currentBoard.title);
 }
 
 // === Utilities ===
 function escapeHtml(text) {
-  const div = document.createElement('div');
+  const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
 
-let draggedCard = null;
-
 // === Theme ===
 function setupTheme() {
-  const saved = localStorage.getItem('theme') || 'light';
-  document.documentElement.setAttribute('data-theme', saved);
+  const saved = localStorage.getItem("theme") || "light";
+  document.documentElement.setAttribute("data-theme", saved);
   updateThemeIcon();
 }
 
 function toggleTheme() {
-  const theme = document.documentElement.getAttribute('data-theme');
-  const next = theme === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('theme', next);
+  const theme = document.documentElement.getAttribute("data-theme");
+  const next = theme === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("theme", next);
   updateThemeIcon();
 }
 
 function updateThemeIcon() {
-  const theme = document.documentElement.getAttribute('data-theme');
-  document.querySelector('.theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+  const theme = document.documentElement.getAttribute("data-theme");
+  document.querySelector(".theme-toggle").textContent =
+    theme === "dark" ? "☀️" : "🌙";
 }
 
-init();
+document.addEventListener("DOMContentLoaded", () => {
+  init();
+});

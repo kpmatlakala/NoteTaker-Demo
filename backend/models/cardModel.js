@@ -4,7 +4,9 @@ const { getPool } = require('../db');
 // GET all cards
 exports.getAllCards = async () => {
   const pool = await getPool();
-  const result = await pool.request().query('SELECT * FROM Cards ORDER BY CreatedAt ASC');
+  const result = await pool.request().query(
+    `SELECT * FROM Cards ORDER BY ColumnId, CreatedAt ASC`
+  );
   return result.recordset;
 };
 
@@ -13,7 +15,7 @@ exports.getCardsByBoard = async (boardId) => {
   const pool = await getPool();
   const result = await pool.request()
     .input('BoardId', sql.Int, boardId)
-    .query('SELECT * FROM Cards WHERE BoardId = @BoardId ORDER BY CreatedAt ASC');
+    .query(`SELECT * FROM Cards WHERE BoardId = @BoardId ORDER BY ColumnId, CreatedAt ASC`);
   return result.recordset;
 };
 
@@ -27,48 +29,38 @@ exports.getCardById = async (cardId) => {
 };
 
 // CREATE card
-exports.createCard = async (boardId, { title, description, priority }) => {
+exports.createCard = async (boardId, columnId, { title, description, priority }) => {
   const pool = await getPool();
   const result = await pool.request()
     .input('BoardId', sql.Int, boardId)
+    .input('ColumnId', sql.Int, columnId)
     .input('Title', sql.NVarChar, title)
     .input('Description', sql.NVarChar, description)
-    .input('Priority', sql.NVarChar, priority)
+    .input('Priority', sql.NVarChar, priority || 'Medium')
     .query(`
-      INSERT INTO Cards (BoardId, Title, Description, Priority)
-      VALUES (@BoardId, @Title, @Description, @Priority);
-      SELECT SCOPE_IDENTITY() AS CardId;
+      INSERT INTO Cards (BoardId, ColumnId, Title, Description, Priority)
+      OUTPUT INSERTED.*
+      VALUES (@BoardId, @ColumnId, @Title, @Description, @Priority)
     `);
 
-  return {
-    CardId: result.recordset[0].CardId,
-    BoardId: boardId,
-    Title: title,
-    Description: description,
-    Priority: priority
-  };
+  return result.recordset[0];
 };
 
-
-// UPDATE card
-exports.updateCard = async (cardId, { content, boardId }) => {
+// UPDATE card (content, move to column, update board if needed)
+exports.updateCard = async (cardId, { title, description, priority, columnId, boardId }) => {
   const pool = await getPool();
   const request = pool.request().input('CardId', sql.Int, cardId);
 
-  let query = 'UPDATE Cards SET ';
   const updates = [];
-  if (content !== undefined) {
-    request.input('Content', sql.NVarChar, content);
-    updates.push('Content = @Content');
-  }
-  if (boardId !== undefined) {
-    request.input('BoardId', sql.Int, boardId);
-    updates.push('BoardId = @BoardId');
-  }
+  if (title !== undefined) { request.input('Title', sql.NVarChar, title); updates.push('Title = @Title'); }
+  if (description !== undefined) { request.input('Description', sql.NVarChar, description); updates.push('Description = @Description'); }
+  if (priority !== undefined) { request.input('Priority', sql.NVarChar, priority); updates.push('Priority = @Priority'); }
+  if (columnId !== undefined) { request.input('ColumnId', sql.Int, columnId); updates.push('ColumnId = @ColumnId'); }
+  if (boardId !== undefined) { request.input('BoardId', sql.Int, boardId); updates.push('BoardId = @BoardId'); }
 
-  if (updates.length === 0) return await exports.getCardById(cardId); // nothing to update
+  if (updates.length === 0) return await exports.getCardById(cardId);
 
-  query += updates.join(', ') + ' WHERE CardId = @CardId; SELECT * FROM Cards WHERE CardId = @CardId;';
+  const query = `UPDATE Cards SET ${updates.join(', ')} WHERE CardId = @CardId; SELECT * FROM Cards WHERE CardId = @CardId;`;
   const result = await request.query(query);
   return result.recordset[0];
 };
@@ -79,6 +71,6 @@ exports.deleteCard = async (cardId) => {
   const result = await pool.request()
     .input('CardId', sql.Int, cardId)
     .query('DELETE FROM Cards WHERE CardId = @CardId; SELECT @@ROWCOUNT AS affected;');
-  
+
   return result.recordset[0].affected > 0;
 };

@@ -7,6 +7,7 @@ const { connectToDb, getPool } = require("./db");
 
 const boardRoutes = require("./routes/boardRoutes");
 const cardRoutes = require("./routes/cardRoutes");
+const columnsRoutes = require('./routes/columnRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,6 +26,8 @@ app.use((req, res, next) => {
 // API routes
 // Boards
 app.use('/api/boards', boardRoutes);
+// Columns
+app.use('/api/columns', columnsRoutes);
 // Cards
 app.use('/api/cards', cardRoutes);
 

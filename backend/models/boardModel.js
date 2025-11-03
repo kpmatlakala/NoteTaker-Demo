@@ -17,12 +17,12 @@ async function getBoardById(boardId) {
 }
 
 // Create new board
-async function createBoard({ name }) {
+async function createBoard({ title }) {
   const pool = await getPool();
   const result = await pool.request()
-    .input('Title', name) // your Boards table column is Title
+    .input('Title', title) // your Boards table column is Title
     .query('INSERT INTO Boards (Title) VALUES (@Title); SELECT SCOPE_IDENTITY() AS BoardId;');
-  return { BoardId: result.recordset[0].BoardId, Title: name };
+  return { BoardId: result.recordset[0].BoardId, Title: title };
 }
 
 // Delete board

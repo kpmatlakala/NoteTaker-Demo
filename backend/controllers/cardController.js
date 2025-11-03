@@ -1,5 +1,6 @@
 const cardModel = require('../models/cardModel');
 const boardModel = require('../models/boardModel');
+const columnModel = require('../models/columnModel');
 
 // GET all cards
 exports.getAllCards = async (req, res) => {
@@ -38,46 +39,50 @@ exports.getCardById = async (req, res) => {
   }
 };
 
-// CREATE new card in a specific board
+// CREATE new card in a board & column
 exports.createCard = async (req, res) => {
   try {
-    const { boardId } = req.params;
+    const { boardId, columnId } = req.params; // columnId is required now
     const { title, description, priority } = req.body;
 
-    // Validate required fields
-    if (!title) 
-      return res.status(400).json({ success: false, error: 'Title is required' });
+    if (!title) return res.status(400).json({ success: false, error: 'Title is required' });
 
-    // Check if board exists
     const board = await boardModel.getBoardById(boardId);
-    if (!board) 
-      return res.status(404).json({ success: false, error: 'Board not found' });
+    if (!board) return res.status(404).json({ success: false, error: 'Board not found' });
 
-    // Create the new card
-    const newCard = await cardModel.createCard(boardId, { title, description, priority });
+    const column = await columnModel.getById(columnId);
+    if (!column) return res.status(404).json({ success: false, error: 'Column not found' });
 
-    // Respond with the created card
+    const newCard = await cardModel.createCard(boardId, columnId, { title, description, priority });
     res.status(201).json({ success: true, data: newCard });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
-
-// UPDATE card
+// UPDATE card (content or move between columns/boards)
 exports.updateCard = async (req, res) => {
   try {
     const { cardId } = req.params;
-    const { content, boardId } = req.body; // optional boardId if moving card
+    const { title, description, priority, columnId, boardId } = req.body;
 
-    const updatedCard = await cardModel.updateCard(cardId, { content, boardId });
-    if (!updatedCard) return res.status(404).json({ success: false, error: 'Card not found' });
+    if (columnId) {
+      const column = await columnModel.getById(columnId);
+      if (!column) return res.status(404).json({ success: false, error: 'Target column not found' });
+    }
 
+    if (boardId) {
+      const board = await boardModel.getBoardById(boardId);
+      if (!board) return res.status(404).json({ success: false, error: 'Target board not found' });
+    }
+
+    const updatedCard = await cardModel.updateCard(cardId, { title, description, priority, columnId, boardId });
     res.json({ success: true, data: updatedCard });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
 
 // DELETE card
 exports.deleteCard = async (req, res) => {

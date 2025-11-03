@@ -1,55 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
     <script src="app.js" defer></script>
-    <title>Kanban Notetaker</title>    
-</head>
-<body>
+    <title>Kanban Notetaker</title>
+  </head>
+  <body>
     <header>
-        <div class="logo">Kanban Notetaker</div>
-        <div class="header-actions">
-            <button class="secondary" onclick="exportBoard()">Export</button>
-            <button class="secondary" onclick="importBoard()">Import</button>
-            <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
-        </div>
+      <div class="logo">Kanban Notetaker</div>
+      <div class="header-actions">
+        <button class="secondary" onclick="exportBoard()">Export</button>
+        <button class="secondary" onclick="importBoard()">Import</button>
+        <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+      </div>
     </header>
 
     <div class="board-container">
-        <div class="board-header">
-            <h1 class="board-title">My Board</h1>
-        </div>
-        <div class="board" id="board"></div>
+      <div class="board-header">
+        <div class="breadcrumbs" id="breadcrumbs"></div>
+        <h1 class="board-title">My Board</h1>
+        <button id="openBoardFormBtn">Add Board</button>
+      </div>
+
+      <div class="board" id="board"></div>
     </div>
 
     <div class="modal" id="cardModal">
-        <div class="modal-content">
-            <div class="modal-header" id="modalTitle">Add New Card</div>
-            <form id="cardForm">
-                <div class="form-group">
-                    <label for="cardTitleInput">Title *</label>
-                    <input type="text" id="cardTitleInput" required>
-                </div>
-                <div class="form-group">
-                    <label for="cardDescInput">Description</label>
-                    <textarea id="cardDescInput"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="cardPriorityInput">Priority</label>
-                    <select id="cardPriorityInput">
-                        <option value="low">Low</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="high">High</option>
-                    </select>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="secondary" onclick="closeModal()">Cancel</button>
-                    <button type="submit">Save Card</button>
-                </div>
-            </form>
-        </div>
-    </div>    
-</body>
+      <div class="modal-content">
+        <div class="modal-header" id="modalTitle">Add New Card</div>
+        <form id="cardForm">
+          <div class="form-group">
+            <label for="cardTitleInput">Title *</label>
+            <input type="text" id="cardTitleInput" required />
+          </div>
+          <div class="form-group">
+            <label for="cardDescInput">Description</label>
+            <textarea id="cardDescInput"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="cardPriorityInput">Priority</label>
+            <select id="cardPriorityInput">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="secondary" onclick="closeModal()">
+              Cancel
+            </button>
+            <button type="submit">Save Card</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal" id="boardModal">
+      <div class="modal-content">
+        <div class="modal-header">Create New Board</div>
+        <form id="boardForm">
+          <div class="form-group">
+            <label for="boardTitleInput">Board Title *</label>
+            <input type="text" id="boardTitleInput" required />
+          </div>
+          <div class="form-group">
+            <label
+              ><input type="checkbox" id="defaultColumns" checked /> Include
+              default columns (Backlog, Todo, Doing, Done)</label
+            >
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="secondary" onclick="closeBoardModal()">
+              Cancel
+            </button>
+            <button type="submit">Create Board</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+  </body>
 </html>
