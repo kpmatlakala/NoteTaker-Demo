@@ -19,9 +19,11 @@
 
     <div class="board-container">
       <div class="board-header">
-        <div class="breadcrumbs" id="breadcrumbs"></div>
-        <h1 class="board-title">My Board</h1>
-        <button id="openBoardFormBtn">Add Board</button>
+        <h1 class="board-title">
+          My Boards
+          <span class="breadcrumbs" id="breadcrumbs"></span>
+        </h1>
+        <button id="boardHeaderBtn">Add Board</button>
       </div>
 
       <div class="board" id="board"></div>
@@ -80,6 +82,23 @@
         </form>
       </div>
     </div>
-    
+
+    <!-- Add Column Modal -->
+    <div id="columnModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeColumnModal()">&times;</span>
+        <h2 id="columnModalTitle">Add New Column</h2>
+        <form id="columnForm">
+          <label for="columnTitleInput">Column Title:</label>
+          <input
+            type="text"
+            id="columnTitleInput"
+            required
+            placeholder="e.g. Review, QA, etc."
+          />
+          <button type="submit">Create Column</button>
+        </form>
+      </div>
+    </div>
   </body>
 </html>

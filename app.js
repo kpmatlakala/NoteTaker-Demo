@@ -12,37 +12,132 @@ async function init() {
   renderBoards();
   setupTheme();
   setupBoardHeader();
+  renderHeader();
 }
 
-// === Setup Add Board Button ===
-function setupBoardHeader() {
-  const addBtn = document.querySelector(".board-header button");
-  if (!addBtn) return;
-
-  addBtn.addEventListener("click", () => {
+document.addEventListener("DOMContentLoaded", () => {
+  // Open board modal
+  document.getElementById("boardHeaderBtn").addEventListener("click", () => {
     document.getElementById("boardModal").style.display = "block";
   });
-}
+
+  // Submit board form
+  document.getElementById("boardForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const title = document.getElementById("boardTitleInput").value.trim();
+    const includeColumns = document.getElementById("defaultColumns").checked;
+    if (!title) return alert("Title is required");
+
+    try {
+      const res = await fetch(`${API_BASE}/boards`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, createDefaultColumns: includeColumns }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await loadBoards();
+        renderBoards();
+        closeBoardModal();
+      } else {
+        alert("❌ Failed to create board: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error("❌ Error creating board:", err);
+      alert("❌ Error creating board, see console");
+    }
+  });
+
+  // === Submit Card Form ===
+  document.getElementById("cardForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const modal = document.getElementById("cardModal");
+    const columnId = parseInt(modal.dataset.columnId);
+    const title = document.getElementById("cardTitleInput").value.trim();
+    const description = document.getElementById("cardDescInput").value.trim();
+    const priority = document.getElementById("cardPriorityInput").value;
+
+    if (!title) return alert("Title is required");
+
+    const res = await fetch(
+      `${API_BASE}/cards/board/${currentBoard.id}/column/${columnId}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, priority }),
+      }
+    );
+
+    const data = await res.json();
+    if (data.success) {
+      await openBoard(currentBoard.id, currentBoard.title);
+      renderBreadcrumbs();
+      closeModal();
+    } else {
+      alert("❌ Failed to add card");
+    }
+  });
+
+  // === Submit Add Column Form ===
+  document
+    .getElementById("columnForm")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("columnTitleInput").value.trim();
+      if (!title) return alert("Column title is required");
+
+      try {
+        const res = await fetch(`${API_BASE}/columns/${currentBoard.id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, position: columns.length + 1 }),
+        });
+
+        const data = await res.json();
+        console.log(data);
+
+        if (data) {
+          columns.push(data); // ✅ Add new column locally
+          renderKanban();
+          closeColumnModal();
+        } else {
+          alert("❌ Failed to create column");
+        }
+      } catch (err) {
+        console.error("❌ Error adding column:", err);
+        alert("❌ Error creating column, see console");
+      }
+    });
+
+  init();
+});
 
 function renderBreadcrumbs() {
   const bc = document.getElementById("breadcrumbs");
+  if (!bc) return;
   bc.innerHTML = "";
 
+  // Only render breadcrumbs if a board is open
   if (!currentBoard) return;
 
+  // 1️⃣ "Boards" clickable link
   const boardsLink = document.createElement("span");
   boardsLink.className = "breadcrumb-link";
   boardsLink.textContent = "Boards";
+  boardsLink.style.cursor = "pointer";
   boardsLink.onclick = async () => {
     currentBoard = null;
     await loadBoards();
     renderBoards();
-    renderBreadcrumbs();
+    renderHeader();
+    renderBreadcrumbs(); // clear breadcrumbs
   };
 
+  // 2️⃣ Separator
   const separator = document.createElement("span");
   separator.textContent = " > ";
 
+  // 3️⃣ Current board name
   const boardName = document.createElement("span");
   boardName.textContent = currentBoard.title;
 
@@ -50,6 +145,57 @@ function renderBreadcrumbs() {
   bc.appendChild(separator);
   bc.appendChild(boardName);
 }
+
+
+// === Setup Add Board Button ===
+function setupBoardHeader() {
+  const headerBtn = document.getElementById("boardHeaderBtn");
+  headerBtn.addEventListener("click", () => {
+    if (currentBoard) openAddColumnModal();
+    else document.getElementById("boardModal").style.display = "block";
+  });
+}
+
+function renderHeader() {
+  const headerBtn = document.getElementById("boardHeaderBtn");
+  const boardTitleEl = document.querySelector(".board-title");
+  
+  // Clear previous content
+  boardTitleEl.innerHTML = "";
+
+  if (currentBoard) {
+    // Header button becomes "Add Column"
+    headerBtn.textContent = "Add Column";
+
+    // Create back arrow / breadcrumb
+    const backLink = document.createElement("span");
+    backLink.textContent = "Boards";
+    backLink.className = "breadcrumb-link";
+    backLink.style.cursor = "pointer";
+    backLink.onclick = async () => {
+      currentBoard = null;
+      await loadBoards();
+      renderBoards();
+      renderHeader();
+      renderBreadcrumbs(); // optional: clear breadcrumbs
+    };
+
+    const separator = document.createElement("span");
+    separator.textContent = " > ";
+
+    const boardName = document.createElement("span");
+    boardName.textContent = currentBoard.title;
+
+    boardTitleEl.appendChild(backLink);
+    boardTitleEl.appendChild(separator);
+    boardTitleEl.appendChild(boardName);
+  } else {
+    // No board open: header shows "My Boards"
+    headerBtn.textContent = "Add Board";
+    boardTitleEl.textContent = "My Boards";
+  }
+}
+
 
 // === Fetch Boards ===
 async function loadBoards() {
@@ -91,44 +237,11 @@ function renderBoards() {
   });
 }
 
-// === Create New Board ===
-// Open board modal
-document.getElementById("openBoardFormBtn").addEventListener("click", () => {
-  document.getElementById("boardModal").style.display = "block";
-});
-
 // Close board modal
 function closeBoardModal() {
   document.getElementById("boardModal").style.display = "none";
   document.getElementById("boardForm").reset();
 }
-
-// Submit board form
-document.getElementById("boardForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const title = document.getElementById("boardTitleInput").value.trim();
-  const includeColumns = document.getElementById("defaultColumns").checked;
-  if (!title) return alert("Title is required");
-
-  try {
-    const res = await fetch(`${API_BASE}/boards`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, createDefaultColumns: includeColumns }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      await loadBoards();
-      renderBoards();
-      closeBoardModal();
-    } else {
-      alert("❌ Failed to create board: " + (data.error || "Unknown error"));
-    }
-  } catch (err) {
-    console.error("❌ Error creating board:", err);
-    alert("❌ Error creating board, see console");
-  }
-});
 
 // === Delete Board ===
 async function deleteBoard(id) {
@@ -146,7 +259,7 @@ async function deleteBoard(id) {
 // === Open Board (columns + cards) ===
 async function openBoard(boardId, title) {
   currentBoard = { id: boardId, title };
-  document.querySelector(".board-title").textContent = title;
+  renderHeader(); //document.querySelector(".board-title").textContent = title;
 
   const [colsRes, cardsRes] = await Promise.all([
     fetch(`${API_BASE}/columns/board/${boardId}`),
@@ -155,13 +268,12 @@ async function openBoard(boardId, title) {
 
   const colsData = await colsRes.json();
   const cardsData = await cardsRes.json();
-  console.log(colsData, cardsData);
-
+  //   console.log(colsData, cardsData);
   columns = colsData ? colsData : [];
   cards = cardsData.success ? cardsData.data : [];
 
   renderKanban();
-  renderBreadcrumbs(); // ✅ Add here
+  renderBreadcrumbs();
 }
 
 // === Render Kanban Columns ===
@@ -260,36 +372,6 @@ function closeModal() {
   delete document.getElementById("cardModal").dataset.columnId;
 }
 
-// === Submit Card Form ===
-document.getElementById("cardForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const modal = document.getElementById("cardModal");
-  const columnId = parseInt(modal.dataset.columnId);
-  const title = document.getElementById("cardTitleInput").value.trim();
-  const description = document.getElementById("cardDescInput").value.trim();
-  const priority = document.getElementById("cardPriorityInput").value;
-
-  if (!title) return alert("Title is required");
-
-  const res = await fetch(
-    `${API_BASE}/cards/board/${currentBoard.id}/column/${columnId}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description, priority }),
-    }
-  );
-
-  const data = await res.json();
-  if (data.success) {
-    await openBoard(currentBoard.id, currentBoard.title);
-    renderBreadcrumbs();
-    closeModal();
-  } else {
-    alert("❌ Failed to add card");
-  }
-});
-
 // === Delete Card ===
 async function deleteCard(cardId) {
   if (!confirm("Delete this card?")) return;
@@ -306,6 +388,19 @@ async function updateCardColumn(cardId, columnId) {
     body: JSON.stringify({ columnId }),
   });
   await openBoard(currentBoard.id, currentBoard.title);
+}
+
+// === Open Add Column Modal ===
+function openAddColumnModal() {
+  const modal = document.getElementById("columnModal");
+  modal.style.display = "block";
+  document.getElementById("columnForm").reset();
+  document.getElementById("columnModalTitle").textContent = "Add New Column";
+}
+
+// === Close Column Modal ===
+function closeColumnModal() {
+  document.getElementById("columnModal").style.display = "none";
 }
 
 // === Utilities ===
@@ -335,7 +430,3 @@ function updateThemeIcon() {
   document.querySelector(".theme-toggle").textContent =
     theme === "dark" ? "☀️" : "🌙";
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-  init();
-});
