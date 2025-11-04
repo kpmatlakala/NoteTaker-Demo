@@ -11,18 +11,12 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
 jobs:
   deploy:
     environment:
-      name: github-pages   # ✅ REQUIRED for Pages deployments
+      name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,7 +24,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./  # 👈 Path to your static files (index.html, js/, assets/, etc.)
+          path: ./frontend  # 👈 frontend folder only
 
       - name: Deploy to GitHub Pages
         id: deployment
