@@ -17,7 +17,7 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Serve frontend
-const FRONTEND_DIR = path.join(__dirname, "../frontend"); 
+const FRONTEND_DIR = path.join(__dirname, "frontend"); 
 app.use(express.static(FRONTEND_DIR));
 
 // Logging middleware
