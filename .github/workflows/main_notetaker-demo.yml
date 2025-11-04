@@ -1,4 +1,4 @@
-name: Build and Deploy Node.js App to Azure Web App - notetaker-demo
+name: Deploy to Multiple Regions
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
       contents: read
 
     steps:
-      # 1️⃣ Checkout
+      # 1️⃣ Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -25,20 +25,20 @@ jobs:
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
-      # 3️⃣ Install backend deps & build + copy frontend
+      # 3️⃣ Install backend deps, build, and copy frontend
       - name: Install dependencies and build backend
         working-directory: ./backend
         run: |
           npm ci
           npm run build --if-present
-          # Copy frontend files into backend folder (relative to ./backend)
+          # Copy frontend files into backend folder
           mkdir -p ./frontend
           cp -r ../frontend/* ./frontend/
           echo "✅ Backend built and frontend copied successfully."
-          echo "📂 Verifying frontend files:"
+          echo "📂 Frontend contents:"
           ls -la ./frontend/
 
-      # 4️⃣ Upload backend (now contains frontend)
+      # 4️⃣ Upload artifact for deployment
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -60,8 +60,8 @@ jobs:
           name: node-app
           path: ./deployment
 
-      # 2️⃣ Verify files
-      - name: List downloaded files
+      # 2️⃣ Verify artifact contents (optional but recommended)
+      - name: Verify deployment files
         run: |
           echo "📂 Deployment folder contents:"
           ls -R ./deployment
@@ -84,10 +84,27 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # 4️⃣ Deploy to Azure Web App
-      - name: Deploy to Azure Web App
+      # 4️⃣ Deploy to South Africa North
+      - name: Deploy to South Africa North
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'notetaker-demo'
           slot-name: 'Production'
           package: ./deployment
+
+      # 5️⃣ Deploy to West Europe
+      - name: Deploy to West Europe
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'notetaker-demo-westeurope'
+          slot-name: 'Production'
+          package: ./deployment
+
+      # 6️⃣ (Optional) Set SQL connection string for West Europe
+      - name: Configure West Europe SQL connection string
+        run: |
+          az webapp config connection-string set \
+            --name notetaker-demo-westeurope \
+            --resource-group rg-notetaker-westeurope \
+            --connection-string-type SQLAzure \
+            --settings DefaultConnection="${{ secrets.AZURE_SQL_CONNECTION_STRING }}"
