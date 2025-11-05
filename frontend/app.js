@@ -1,5 +1,5 @@
 // Base API URL
-const API_BASE = "https://notetaker-demo-cjdxf3g0ffhvczcf.southafricanorth-01.azurewebsites.net/api";
+const API_BASE = "/api";
 let boards = [];
 let currentBoard = null;
 let columns = [];
